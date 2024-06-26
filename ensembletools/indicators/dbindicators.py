@@ -6,14 +6,13 @@ import traceback
 import pandas as pd
 
 from dbbinance.fetcher.datautils import Constants
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 from ensembletools.modelstools.modelcard_v2 import ModelCard
-from ensembletools.modelstools.predictionstore import RawPredictionHistory, PredictionsTracker, get_raw_ph_obj, \
-    get_agg_dict
+from ensembletools.modelstools.predictionstore import PredictionsTracker
 from dbbinance.fetcher.datautils import check_convert_to_datetime, convert_timeframe_to_freq, get_timedelta_kwargs
-from dateutil.relativedelta import *
+from dateutil.relativedelta import relativedelta
 
-__version__ = 0.015
+__version__ = 0.018
 
 logger = logging.getLogger()
 

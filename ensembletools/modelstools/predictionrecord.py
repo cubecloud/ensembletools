@@ -1,8 +1,8 @@
 import datetime
 import numpy as np
-from dataclasses import dataclass, asdict
+from dataclasses import dataclass
 
-__version__ = 0.021
+__version__ = 0.022
 
 
 @dataclass

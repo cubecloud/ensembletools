@@ -1,6 +1,7 @@
 import logging
 
 import datetime
+import numpy as np
 import pandas as pd
 
 from psycopg2 import sql
@@ -11,7 +12,7 @@ from typing import List, Dict, Union, Optional
 from dbbinance.config.configpostgresql import ConfigPostgreSQL
 from dbbinance.fetcher.cachemanager import CacheManager
 from ensembletools.modelstools.modelcard_v2 import ModelCard
-from ensembletools.modelstools.calculations import *
+# from ensembletools.modelstools.calculations import *
 from dbbinance.fetcher.datautils import check_convert_to_datetime, convert_timeframe_to_freq, get_timedelta_kwargs
 from dbbinance.fetcher.datafetcher import Constants
 from ensembletools.modelstools.predictionrecord import PredictionRecord

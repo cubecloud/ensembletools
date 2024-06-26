@@ -1,15 +1,12 @@
 import copy
 from typing import Optional
 
-# import numpy as np
-# from numpy import ndarray, dtype
-
 from dbbinance.fetcher.datautils import *
 from ensembletools.modelstools.simpletriplet import SimpleTriplet, ChainStore, BatchBalanced
 from itertools import cycle
 from mlthread_tools import syncing
 
-__version__ = 0.0030
+__version__ = 0.0031
 
 logger = logging.getLogger()
 
