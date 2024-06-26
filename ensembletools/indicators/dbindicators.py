@@ -9,7 +9,7 @@ from dbbinance.fetcher.datautils import Constants
 from dataclasses import dataclass
 from ensembletools.modelstools.modelcard_v2 import ModelCard
 from ensembletools.modelstools.predictionstore import PredictionsTracker
-from dbbinance.fetcher.datautils import check_convert_to_datetime, convert_timeframe_to_freq, get_timedelta_kwargs
+from dbbinance.fetcher.datautils import check_convert_to_datetime, get_timedelta_kwargs
 from dateutil.relativedelta import relativedelta
 
 __version__ = 0.018

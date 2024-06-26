@@ -29,7 +29,7 @@ _show_period = '1d'
 _timedelta_kwargs = get_timedelta_kwargs(_show_period, current_timeframe=_timeframe)
 _end_datetime = ceil_time(datetime.datetime.utcnow(), _timeframe)
 _start_datetime = _end_datetime - relativedelta(**_timedelta_kwargs)
-_start_datetime = ceil_time(_start_datetime, _timeframe)
+_start_datetime = floor_time(_start_datetime, _timeframe)
 
 pt = PredictionsTracker(symbol='BTCUSDT', market='spot', raw_ph_obj=raw_db_obj)
 

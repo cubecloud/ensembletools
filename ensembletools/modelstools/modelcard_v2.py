@@ -1,5 +1,5 @@
 import marshmallow.validate
-from ensembletools.modelstools.pool import pooltypes_dict
+from ensembletools.modelstools.pooltypes import pooltypes_dict
 from dbbinance.fetcher.constants import Constants
 from dataclasses import dataclass, field
 
