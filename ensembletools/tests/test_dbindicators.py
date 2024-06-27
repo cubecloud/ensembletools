@@ -62,17 +62,26 @@ logger.debug(f"Indicator data: \n{_df}")
 
 logger.debug(f"Setting different timeframe and discretization: ")
 _show_period = '3h'
-ind.timeframe = '5m'
-ind.discretization = '15m'
+ind.timeframe = '10m'
+ind.discretization = '10m'
 _timedelta_kwargs = get_timedelta_kwargs(_show_period, current_timeframe=_timeframe)
-_end_datetime = floor_time(datetime.datetime.utcnow(), '5m')
+_end_datetime = ceil_time(datetime.datetime.utcnow(), '1m')
 _start_datetime = _end_datetime - relativedelta(**_timedelta_kwargs)
-_start_datetime = floor_time(_start_datetime, '5m')
+_start_datetime = floor_time(_start_datetime, '1m')
 logger.debug(f"Preload indicator data with start_datetime-end_datetime': {_start_datetime}-{_end_datetime}")
 ind.preload_indicator(_start_datetime, _end_datetime)
 
 use_columns = [0, 1, 'power', 'target_time']
 ind.columns = use_columns
 _df = ind.prediction_show
-logger.debug(f"Set only __main__ column to show: {use_columns}")
+logger.debug(f"Set only __main__ columns to show: {use_columns}")
 logger.debug(f"Indicator data: \n{_df}")
+
+use_columns = [0, 1, 'power', 'prediction_time']
+ind.columns = use_columns
+logger.debug(f"Set 'index_type' = target_time to use 'target_time column as index")
+ind.index_type = 'target_time'
+_df = ind.prediction_show
+logger.debug(f"Set only __main__ columns to show: {use_columns}")
+logger.debug(f"Indicator data: \n{_df}")
+

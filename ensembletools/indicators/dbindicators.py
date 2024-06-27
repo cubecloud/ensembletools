@@ -187,10 +187,18 @@ class IndicatorLoaded(DbIndicator):
         super().__init__(model_uuid, prediction_tracker_obj)
         self.__preloaded_data: pd.DataFrame or None = None
         self.__show_columns: list = [1]
+        self.__index_type: str = 'prediction_time'
 
     @property
     def prediction_show(self):
-        return self.__preloaded_data[self.__show_columns]
+        if self.__index_type == 'target_time':
+            _df = self.__preloaded_data.reset_index(drop=False).set_index('target_time', drop=False)
+            cols = [col if col != 'index' else 'prediction_time' for col in _df.columns]
+            _df.columns = cols
+            _df.index.names = [None]
+            return _df[self.__show_columns]
+        else:
+            return self.__preloaded_data[self.__show_columns]
 
     @property
     def power_show(self):
@@ -203,6 +211,15 @@ class IndicatorLoaded(DbIndicator):
     @columns.setter
     def columns(self, value: list):
         self.__show_columns = value
+
+    @property
+    def index_type(self):
+        return self.__index_type
+
+    @index_type.setter
+    def index_type(self, value: str):
+        assert value in ['prediction_time', 'target_time'], f'Error: unknown index type {self.__index_type}'
+        self.__index_type = value
 
     @property
     def current_datetime(self):
