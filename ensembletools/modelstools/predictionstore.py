@@ -1,3 +1,4 @@
+import copy
 import logging
 
 import datetime
@@ -810,14 +811,41 @@ class PredictionsTracker:
                                   cached: bool = False,
                                   ) -> Optional[pd.DataFrame]:
 
-        def get_powered_df():
-            pwrd_df = None
+        def get_predicted_data():
             predicted_data = self.raw_ph_obj.get_predictions_by_predict_time(
                 predicts_table_name=self.raw_pred_table_name,
                 symbol=self.symbol,
                 model_uuid=model_uuid,
                 predict_start_datetime=extended_start_datetime,
                 predict_end_datetime=end_datetime)
+            return predicted_data
+
+        def get_powered_df():
+            pwrd_df = None
+            predicted_data = None
+            if cached:
+                cache_key = self.CM.get_cache_key(symbol=self.symbol, market=self.market, model_uuid=model_uuid,
+                                                  start_datetime=extended_start_datetime, end_datetime=end_datetime,
+                                                  timeframe=timeframe, discretization=discretization, data_type='RAW')
+                if cache_key in self.CM.cache.keys():
+                    predicted_data = self.CM.cache[cache_key]
+                    logger.debug(f"{self.__class__.__name__}: Return RAW predicted cached data {model_uuid}")
+                else:
+                    for key in self.CM.cache.keys():
+                        if (len(key) == 8) and (key[6][1] == self.symbol) and (
+                                extended_start_datetime >= key[5][1]) and (
+                                end_datetime <= key[2][1]) and (model_uuid == key[4][1]) and (
+                                timeframe == key[7][1]) and ('RAW' == key[0][1]) and (self.market == key[3][1]) and (
+                                discretization == key[1][1]):
+                            predicted_data = self.CM.cache[key]
+                            msg = f"{self.__class__.__name__}: Return RAW predicted cached data {model_uuid}"
+                            logger.debug(msg)
+                            break
+                    if predicted_data is None:
+                        predicted_data = get_predicted_data()
+                        self.CM.update_cache(key=cache_key, value=copy.deepcopy(predicted_data))
+            else:
+                predicted_data = get_predicted_data()
 
             if predicted_data:
                 pwrd_df = self.powered_df(records_lst=predicted_data,
@@ -1020,4 +1048,3 @@ def get_raw_ph_obj(table_name_suffix='_data') -> RawPredictionHistory:
 
     raw_db_ = RawPredictionHistory(**db_kwargs_, table_name_suffix=table_name_suffix)
     return raw_db_
-

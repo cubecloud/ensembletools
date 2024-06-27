@@ -259,7 +259,7 @@ class IndicatorLoaded(DbIndicator):
                                                     discretization=self.discretization,
                                                     cached=True)
         logger.debug(
-            f'{self.__class__.__name__}: Preload: {self.model_uuid}  {_start_datetime}-{_end_datetime}')
+            f'{self.__class__.__name__}: Preload: {self.model_uuid}  {_start_datetime} - {_end_datetime}')
 
         if _df is not None and _df.shape[0] > 0:
             self.__preloaded_data = _df.copy(deep=True)

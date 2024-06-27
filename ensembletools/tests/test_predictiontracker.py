@@ -38,7 +38,7 @@ pt.set_active_models_uuid(models_uuid)
 
 logger.debug(f"Models UUID's list:\n{models_uuid}")
 
-logger.debug(f"Load model data for model_uuid: {models_uuid[0]}, with 'start_datetime-end_datetime': {_start_datetime}-{_end_datetime} and 'timeframe': {_timeframe}")
+logger.debug(f"Load model data for model_uuid: {models_uuid[0]}, with 'start_datetime-end_datetime': {_start_datetime} - {_end_datetime} and 'timeframe': {_timeframe}")
 
 _df = pt.load_model_predicted_data(model_uuid=models_uuid[0],
                                    start_datetime=_start_datetime,
