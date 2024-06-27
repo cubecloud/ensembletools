@@ -81,6 +81,7 @@ use_columns = [0, 1, 'power', 'prediction_time']
 ind.columns = use_columns
 logger.debug(f"Set 'index_type' = target_time to use 'target_time column as index")
 ind.index_type = 'target_time'
+ind.preload_indicator(_start_datetime, _end_datetime)
 _df = ind.prediction_show
 logger.debug(f"Set only __main__ columns to show: {use_columns}")
 logger.debug(f"Indicator data: \n{_df}")

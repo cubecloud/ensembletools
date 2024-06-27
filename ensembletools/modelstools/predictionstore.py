@@ -388,7 +388,7 @@ class RawPredictionHistory(ModelsSQLDatabase, PredictionSQLDatabase):
 
     def __init__(self, host, database, user, password, table_name_suffix='_data'):
         super().__init__(host, database, user, password)
-        SQLMeta.count -= 1  # decrease number cos we have to parents with counted idnum
+        SQLMeta.count -= 1  # decrease number cos we have two parents with counted idnum
         PredictionSQLDatabase.__init__(self, host, database, user, password)
         self.idnum = int(SQLMeta.count)
         self.table_name_suffix = table_name_suffix
@@ -403,7 +403,7 @@ class RawPredictionHistory(ModelsSQLDatabase, PredictionSQLDatabase):
     def save_prediction(self,
                         prediction_record: PredictionRecord,
                         model_card: ModelCard,
-                        table_name: str or None = None,
+                        table_name: Union[str, None] = None,
                         ) -> int:
         """
         Args:
@@ -426,7 +426,7 @@ class RawPredictionHistory(ModelsSQLDatabase, PredictionSQLDatabase):
 
     def _collect_not_duped_records(self,
                                    records: List[PredictionRecord,],
-                                   table_name: str or None = None) -> List[PredictionRecord,]:
+                                   table_name: Union[str, None] = None) -> List[PredictionRecord,]:
         not_duped: list = []
         result = self.records_exist(table_name, records)
 
@@ -594,8 +594,8 @@ class RawPredictionHistory(ModelsSQLDatabase, PredictionSQLDatabase):
 
         Args:
             predicts_table_name (str):                  name of the table to retrieve predictions from
-            model_uuid (str):                            model_uuid of the PredictionRecord objects to retrieve
-            symbol (str):                          symbol of the PredictionRecord objects to retrieve
+            model_uuid (str):                           model_uuid of the PredictionRecord objects to retrieve
+            symbol (str):                               symbol of the PredictionRecord objects to retrieve
             target_start_datetime (datetime.datetime):  start of the datetime range to retrieve predictions for
             target_end_datetime (datetime.datetime):    end of the datetime range to retrieve predictions for
 

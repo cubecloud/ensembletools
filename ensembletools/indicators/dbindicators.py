@@ -61,9 +61,9 @@ class DbIndicator:
         self.model_uuid: str = model_uuid
         self.indicator_id: int = 0
         self.pt_obj = prediction_tracker_obj
-        self.__model_card: ModelCard = self.pt_obj.raw_ph_obj.get_card(self.model_uuid)
-        self.__timeframe = self.__model_card.interval
-        self.__discretization = self.__model_card.interval
+        self.model_card: ModelCard = self.pt_obj.raw_ph_obj.get_card(self.model_uuid)
+        self.__timeframe = self.model_card.interval
+        self.__discretization = self.model_card.interval
         self.__current_datetime: datetime.datetime or None = None
         self._indicator_data: pd.DataFrame or pd.Series or None = None
         self.__algo_params: ModelAlgoParams or None = None
@@ -79,33 +79,33 @@ class DbIndicator:
 
     @property
     def power_trend(self):
-        return self.__model_card.power_trend
+        return self.model_card.power_trend
 
     @property
     def interval(self):
-        return self.__model_card.interval
+        return self.model_card.interval
 
     @property
     def target_steps(self):
-        return self.__model_card.target_steps
+        return self.model_card.target_steps
 
     @property
     def market(self):
-        return self.__model_card.market
+        return self.model_card.market
 
     @property
     def symbol(self):
-        return self.__model_card.symbol
+        return self.model_card.symbol
 
     @property
     def model_type(self):
-        return self.__model_card.model_type
+        return self.model_card.model_type
 
     @property
     def direction(self):
-        if self.__model_card.model_activator_value == 'plus' and self.model_type == 'classification':
+        if self.model_card.model_activator_value == 'plus' and self.model_type == 'classification':
             return 'plus'
-        elif self.__model_card.model_activator_value == 'minus' and self.model_type == 'classification':
+        elif self.model_card.model_activator_value == 'minus' and self.model_type == 'classification':
             return 'minus'
         else:
             return None
@@ -190,7 +190,7 @@ class IndicatorLoaded(DbIndicator):
         self.__index_type: str = 'prediction_time'
 
     @property
-    def prediction_show(self):
+    def prediction_show(self) -> pd.DataFrame:
         if self.__index_type == 'target_time':
             _df = self.__preloaded_data.reset_index(drop=False).set_index('target_time', drop=False)
             cols = [col if col != 'index' else 'prediction_time' for col in _df.columns]
@@ -246,6 +246,11 @@ class IndicatorLoaded(DbIndicator):
                           ):
         _end_datetime = check_convert_to_datetime(_end_datetime, utc_aware=False)
         _start_datetime = check_convert_to_datetime(_start_datetime, utc_aware=False)
+        if self.__index_type == 'target_time':
+            _timedelta_kwargs = get_timedelta_kwargs(self.model_card.target_steps,
+                                                     current_timeframe=self.model_card.interval)
+            _start_datetime = _start_datetime - relativedelta(**_timedelta_kwargs)
+
         _df = self.pt_obj.load_model_predicted_data(model_uuid=self.model_uuid,
                                                     start_datetime=_start_datetime,
                                                     end_datetime=_end_datetime,
