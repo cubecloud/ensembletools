@@ -264,6 +264,9 @@ class IndicatorLoaded(DbIndicator):
         if _df is not None and _df.shape[0] > 0:
             self.__preloaded_data = _df.copy(deep=True)
             self.__preloaded_data['power'] = self.__preloaded_data['power'] / Constants.binsizes[self.discretization]
+            msg = (f'{self.__class__.__name__}: Loaded: {self.model_uuid}  '
+                   f'{self.__preloaded_data.index[0]} - {self.__preloaded_data.index[-1]}')
+            logger.debug(msg)
         else:
             self.__preloaded_data = None
         pass
