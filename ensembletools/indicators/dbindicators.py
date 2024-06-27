@@ -250,6 +250,7 @@ class IndicatorLoaded(DbIndicator):
             _timedelta_kwargs = get_timedelta_kwargs(self.model_card.target_steps,
                                                      current_timeframe=self.model_card.interval)
             _start_datetime = _start_datetime - relativedelta(**_timedelta_kwargs)
+            _end_datetime = _end_datetime - relativedelta(**_timedelta_kwargs)
 
         _df = self.pt_obj.load_model_predicted_data(model_uuid=self.model_uuid,
                                                     start_datetime=_start_datetime,
