@@ -1,6 +1,6 @@
 import marshmallow.validate
-from ensembletools.modelstools.pooltypes import pooltypes_dict
-from dbbinance.fetcher.constants import Constants
+from ensembletools.modelstools import pooltypes_dict
+from dbbinance.fetcher import Constants
 from dataclasses import dataclass, field
 
 __version__ = 0.028
