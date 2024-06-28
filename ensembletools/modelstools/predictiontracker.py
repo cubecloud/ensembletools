@@ -57,19 +57,26 @@ cache_manager_obj = CacheManager()
 
 class PredictionTracker:
     CM = cache_manager_obj
+    count = 0
 
     def __init__(self, symbol: str, market: str, raw_ph_obj: RawPredictionHistory = None):
         """
         Initializes an instance of the class.
 
+        ! for ml-threaded keep Args raw_ph_obj = None to create independent
+        ! PredictionTracker instance with independent RawPredictionHistory object
+
         Parameters:
-            symbol (str): The symbol for the market.
-            market (str): The market for the symbol.
-            raw_ph_obj (RawPredictionHistory, optional): An instance of the RawPredictionHistory class. Defaults to None.
+            symbol (str):                                   The symbol for the market.
+            market (str):                                   The market for the symbol.
+            raw_ph_obj (RawPredictionHistory, optional):    An instance of the RawPredictionHistory class.
+                                                            Defaults to None
 
         Returns:
             None
         """
+        PredictionTracker.count += 1
+        self.idnum = int(PredictionTracker.count)
 
         if raw_ph_obj is None:
             raw_ph_obj: RawPredictionHistory = get_raw_ph_obj()
@@ -80,6 +87,9 @@ class PredictionTracker:
         self.symbol = symbol
         self.models_uuid_to_filter_list = []
         self.active_models_uuid_list = []
+
+    def __del__(self):
+        PredictionTracker.count -= 1
 
     def set_models_uuid_to_filter(self, models_uuid_filter_list: list):
         self.models_uuid_to_filter_list = models_uuid_filter_list
@@ -120,75 +130,64 @@ class PredictionTracker:
                 models_pred.update({model_uuid: pred_data})
         return models_pred
 
-    @staticmethod
-    def prepare_dict_df(records_dict):
+    # def indexed_dict_df(self, records_dict, start_datetime, end_datetime):
+    #     models_dict_df: dict = {}
+    #     index = pd.date_range(start=start_datetime, end=end_datetime, freq='1min')
+    #     for k, v in records_dict.items():
+    #         records = pd.DataFrame(v)
+    #         records = records.drop(columns='model_uuid')
+    #         records = records.sort_values(by='predict_time', ascending=True).set_index('predict_time')
+    #         pred_data = pd.DataFrame(records['predict_data'].to_list(), index=records.index).astype(float)
+    #         records = pd.concat([records['target_time'], pred_data], axis=1)
+    #         records = records.reindex(index, method=None)
+    #         models_dict_df[k] = records.add_prefix(k + '#')
+    #     return models_dict_df
+
+    def custom_reindex(self, records_df, index, fillna: Union[int, float] = 0):
         """
-        Prepare a dictionary of dataframes.
+        ! keep it in object for ml-threads
         Args:
-            records_dict (dict): A dictionary of records, where the keys are the model_UUID names and the values are lists of records.
+            records_df:
+            index:
+            fillna:
 
         Returns:
-            dict: A dictionary where the keys are the record names and the values are pandas DataFrames containing the records.
+
         """
-        models_dict_df: dict = {}
-        for k, v in records_dict.items():
-            records = pd.DataFrame(v)
-            records = records.drop(columns='model_uuid')
-            pred_data = pd.DataFrame(records['predict_data'].to_list(), index=records.index).astype(float)
-            records = pd.concat([records, pred_data], axis=1)
-            records = records.drop(columns=['predict_data'])
-            records = records.sort_values(by='predict_time', ascending=True)
-            models_dict_df[k] = records
-        return models_dict_df
-
-    @staticmethod
-    def indexed_dict_df(records_dict, start_datetime, end_datetime):
-        models_dict_df: dict = {}
-        index = pd.date_range(start=start_datetime, end=end_datetime, freq='1min')
-        for k, v in records_dict.items():
-            records = pd.DataFrame(v)
-            records = records.drop(columns='model_uuid')
-            records = records.sort_values(by='predict_time', ascending=True).set_index('predict_time')
-            pred_data = pd.DataFrame(records['predict_data'].to_list(), index=records.index).astype(float)
-            records = pd.concat([records['target_time'], pred_data], axis=1)
-            records = records.reindex(index, method=None)
-            models_dict_df[k] = records.add_prefix(k + '#')
-        return models_dict_df
-
-    @staticmethod
-    def custom_reindex(records_df, index, fillna: Union[int, float] = 0):
         columns_to_fill = ['power', 0, 1]
         records_df = records_df.reindex(index, method=None)
         records_df[columns_to_fill] = records_df[columns_to_fill].fillna(fillna)
         return records_df
 
-    def load_predicted_data(self,
-                            start_datetime: Union[datetime.datetime, str],
-                            end_datetime: Union[datetime.datetime, str],
-                            utc_aware=False) -> Dict[str, pd.DataFrame]:
+    # def load_predicted_data(self,
+    #                         start_datetime: Union[datetime.datetime, str],
+    #                         end_datetime: Union[datetime.datetime, str],
+    #                         utc_aware=False) -> Dict[str, pd.DataFrame]:
+    #
+    #     start_datetime = check_convert_to_datetime(start_datetime, utc_aware=utc_aware)
+    #     end_datetime = check_convert_to_datetime(end_datetime, utc_aware=utc_aware)
+    #
+    #     channels_data: dict = {}
+    #
+    #     for model_uuid in self.active_models_uuid_list:
+    #         predicted_data = self.raw_ph_obj.get_predictions_by_predict_time(
+    #             predicts_table_name=self.raw_pred_table_name,
+    #             symbol=self.symbol,
+    #             model_uuid=model_uuid,
+    #             predict_start_datetime=start_datetime,
+    #             predict_end_datetime=end_datetime)
+    #         if predicted_data:
+    #             channels_data.update(self.indexed_dict_df({model_uuid: predicted_data},
+    #                                                       start_datetime,
+    #                                                       end_datetime))
+    #     return channels_data
 
-        start_datetime = check_convert_to_datetime(start_datetime, utc_aware=utc_aware)
-        end_datetime = check_convert_to_datetime(end_datetime, utc_aware=utc_aware)
-
-        channels_data: dict = {}
-
-        for model_uuid in self.active_models_uuid_list:
-            predicted_data = self.raw_ph_obj.get_predictions_by_predict_time(
-                predicts_table_name=self.raw_pred_table_name,
-                symbol=self.symbol,
-                model_uuid=model_uuid,
-                predict_start_datetime=start_datetime,
-                predict_end_datetime=end_datetime)
-            if predicted_data:
-                channels_data.update(self.indexed_dict_df({model_uuid: predicted_data},
-                                                          start_datetime,
-                                                          end_datetime))
-        return channels_data
-
-    @staticmethod
-    def minute_records_to_df(records_lst, start_datetime, end_datetime, ) -> pd.DataFrame:
+    def minute_records_to_df(self, records_lst, start_datetime, end_datetime, ) -> pd.DataFrame:
         """
+
         Converting one-minute records to pd.DataFrame
+        ! Keep it in object for ml-threads
+
         Args:
             records_lst:
             start_datetime:
@@ -205,21 +204,31 @@ class PredictionTracker:
         records_df = records_df.sort_values(by='predict_time', ascending=True).set_index('predict_time')
         pred_data_df = pd.DataFrame(records_df['predict_data'].to_list(), index=records_df.index).astype(float)
         records_df = pd.concat([records_df['power'], pred_data_df], axis=1)
-        records_df = PredictionTracker.custom_reindex(records_df, index)
+        records_df = self.custom_reindex(records_df, index)
         records_df['power'] = records_df['power'].astype(float)
         records_df['target_time'] = records_df.index + target_time_diff
         return records_df
 
-    @staticmethod
-    def powered_df(records_df,
-                   start_datetime,
-                   end_datetime,
-                   timeframe: Union[str, None] = None,
+    def powered_df(self, records_df, start_datetime, end_datetime, timeframe: Union[str, None] = None,
                    discretization: Union[str, None] = None) -> pd.DataFrame:
+        """
+        convert one minutes df to timeframed df with agg
+        ! Keep it in object for ml-threads
+
+        Args:
+            records_df:
+            start_datetime:
+            end_datetime:
+            timeframe:
+            discretization:
+
+        Returns:
+
+        """
         index = records_df.index
 
         if timeframe is not None and timeframe != '1m':
-            records_df = PredictionTracker.custom_reindex(records_df, index, fillna=np.nan)
+            records_df = self.custom_reindex(records_df, index, fillna=np.nan)
             assert discretization is not None, f'Error: discretization is not set - None'
             if timeframe == discretization:
                 agg_dict = get_agg_dict(list(records_df.columns))
@@ -237,12 +246,12 @@ class PredictionTracker:
         # records_df['power'] = records_df['power'].astype(float)
         # records_df['target_time'] = records_df.index + target_time_diff
         logger.debug(
-            f"{PredictionTracker.__class__.__name__}: before records_df.index[0]-records_df.index[-1] {records_df.index[0]} - {records_df.index[-1]}")
+            f"{self.__class__.__name__} #{self.idnum}: before records_df.index[0]-records_df.index[-1] {records_df.index[0]} - {records_df.index[-1]}")
         records_df = records_df[start_datetime:end_datetime]
         logger.debug(
-            f"{PredictionTracker.__class__.__name__}: powered_df start_datetime-end_datetime {start_datetime} - {end_datetime}")
+            f"{self.__class__.__name__} #{self.idnum}: powered_df start_datetime-end_datetime {start_datetime} - {end_datetime}")
         logger.debug(
-            f"{PredictionTracker.__class__.__name__}: after records_df.index[0]-records_df.index[-1] {records_df.index[0]} - {records_df.index[-1]}")
+            f"{self.__class__.__name__} #{self.idnum}: after records_df.index[0]-records_df.index[-1] {records_df.index[0]} - {records_df.index[-1]}")
         return records_df
 
     def get_predicted_data(self, model_uuid, start_datetime, end_datetime):
@@ -273,7 +282,8 @@ class PredictionTracker:
                                                   data_type='RAW')
                 if cache_key in self.CM.cache.keys():
                     records_df = self.CM.cache[cache_key]
-                    logger.debug(f"{self.__class__.__name__}: Return RAW predicted cached data {model_uuid}")
+                    logger.debug(
+                        f"{self.__class__.__name__} #{self.idnum}: Return RAW predicted cached data {model_uuid}")
                 else:
                     for key in self.CM.cache.keys():
                         if len(key) == 6:
@@ -281,16 +291,16 @@ class PredictionTracker:
                                     end_datetime <= key[1][1]) and (model_uuid == key[3][1]) and (
                                     'RAW' == key[0][1]) and (self.market == key[2][1]):
                                 records_df = self.CM.cache[key]
-                                msg = f"{self.__class__.__name__}: Return RAW predicted cached data {model_uuid}"
+                                msg = f"{self.__class__.__name__} #{self.idnum}: Return RAW predicted cached data {model_uuid}"
                                 logger.debug(msg)
                                 break
                     if records_df is None:
-                        records_df = PredictionTracker.minute_records_to_df(
+                        records_df = self.minute_records_to_df(
                             self.get_predicted_data(model_uuid, extended_start_datetime, end_datetime),
                             extended_start_datetime, end_datetime)
                         self.CM.update_cache(key=cache_key, value=copy.deepcopy(records_df))
             else:
-                records_df = PredictionTracker.minute_records_to_df(
+                records_df = self.minute_records_to_df(
                     self.get_predicted_data(model_uuid, extended_start_datetime, end_datetime),
                     extended_start_datetime, end_datetime)
 
@@ -321,7 +331,7 @@ class PredictionTracker:
                                               timeframe=timeframe, discretization=discretization)
             if cache_key in self.CM.cache.keys():
                 powered_df = self.CM.cache[cache_key]
-                logger.debug(f"{self.__class__.__name__}: Return cached data {model_uuid}")
+                logger.debug(f"{self.__class__.__name__} #{self.idnum}: Return cached data {model_uuid}")
             else:
                 powered_df = get_powered_df()
                 self.CM.update_cache(cache_key, powered_df)
@@ -329,76 +339,3 @@ class PredictionTracker:
             powered_df = get_powered_df()
 
         return powered_df.loc[start_datetime:].copy(deep=True) if powered_df is not None else None
-
-    @staticmethod
-    def some_dict_update(k: any, list_value: any, some_dict: dict):
-        v = some_dict.get(k, None)
-        if v is None:
-            v = []
-        v.append(list_value)
-        some_dict.update({k: v})
-        return some_dict
-
-    def get_sorted_cards(self, models_uuids) -> Dict[str, List]:
-        """
-        Get sorted models cards dictionary
-        Args:
-            models_uuids (list):        list of models uuids for sort
-
-        Returns:
-            sorted_cards_dict (dict):   sorted cards
-        """
-        cards_type_dict: dict = {}
-        for model_uuid in models_uuids:
-            model_card = self.get_model_card(model_uuid=model_uuid)
-            if model_card.model_activator_value == 'plus' and model_card.model_type == 'classification':
-                cards_type_dict = self.some_dict_update('plus', model_card, cards_type_dict)
-            elif model_card.model_activator_value == 'minus' and model_card.model_type == 'classification':
-                cards_type_dict = self.some_dict_update('minus', model_card, cards_type_dict)
-            elif model_card.model_type == 'regression':
-                cards_type_dict = self.some_dict_update('regression', model_card, cards_type_dict)
-            else:
-                cards_type_dict = self.some_dict_update('unknown', model_card, cards_type_dict)
-        return cards_type_dict
-
-    def get_sorted_events(self,
-                          start_datetime: datetime.datetime or str,
-                          end_datetime: datetime.datetime or str,
-                          ) -> dict:
-        """
-        Getting all events in datetime range 'start_datetime'-'end_datetime'
-        with models_uuid's
-
-        Args:
-            start_datetime:
-            end_datetime:
-        """
-        events_data: dict = {}
-        self.set_active_models_uuid(self.get_all_models_uuid_list())
-        records_dict = self.get_all_models_raw_predictions(start_datetime=start_datetime,
-                                                           end_datetime=end_datetime)
-        if records_dict is None:
-            return events_data
-
-        records_dict = self.prepare_dict_df(records_dict)
-        sorted_cards = self.get_sorted_cards(list(records_dict.keys()))
-        for model_uuid, events_df in records_dict.items():
-            for type_dir, cards_ in sorted_cards.items():
-                models_uuids = [card.model_uuid for card in cards_]
-                if model_uuid in models_uuids:
-                    events_data = self.some_dict_update(type_dir, (model_uuid, events_df), events_data)
-        return events_data
-
-    def get_model_card(self, model_uuid: str):
-        model_card = self.raw_ph_obj.get_card(model_uuid=model_uuid)
-        return model_card
-
-    def get_models_predictions(self,
-                               start_datetime: datetime.datetime or str,
-                               end_datetime: datetime.datetime or str,
-                               models_uuid_list: list = (),
-                               ):
-        self.set_active_models_uuid(models_uuid_list)
-        models_pred = self.get_all_models_raw_predictions(start_datetime, end_datetime)
-        self.reset_models_uuid_filter()
-        return models_pred

@@ -4,6 +4,7 @@ import datetime
 import numpy as np
 import pandas as pd
 
+from typing import List, Dict
 
 from dbbinance.fetcher import check_convert_to_datetime, convert_timeframe_to_freq, get_timedelta_kwargs
 from ensembletools.modelstools import RawPredictionHistory
@@ -28,6 +29,26 @@ class PredictionsEvents(PredictionTracker):
     def get_arg_preds(_df) -> np.ndarray:
         arg_preds = np.argmax(_df[[0, 1]].values, axis=-1)
         return arg_preds
+
+    def prepare_dict_df(self, records_dict):
+        """
+        Prepare a dictionary of dataframes.
+        Args:
+            records_dict (dict): A dictionary of records, where the keys are the model_UUID names and the values are lists of records.
+
+        Returns:
+            dict: A dictionary where the keys are the record names and the values are pandas DataFrames containing the records.
+        """
+        models_dict_df: dict = {}
+        for k, v in records_dict.items():
+            records = pd.DataFrame(v)
+            records = records.drop(columns='model_uuid')
+            pred_data = pd.DataFrame(records['predict_data'].to_list(), index=records.index).astype(float)
+            records = pd.concat([records, pred_data], axis=1)
+            records = records.drop(columns=['predict_data'])
+            records = records.sort_values(by='predict_time', ascending=True)
+            models_dict_df[k] = records
+        return models_dict_df
 
     def _distillate_events(self, events_collect: list) -> dict or None:
         events_list: list = []
@@ -95,3 +116,76 @@ class PredictionsEvents(PredictionTracker):
                 new_cards_data.update({model_uuid: self.get_model_card(model_uuid)})
             new_events_data.update({type_dir: new_events_collect})
         return new_events_data, new_cards_data
+
+    def get_sorted_events(self,
+                          start_datetime: datetime.datetime or str,
+                          end_datetime: datetime.datetime or str,
+                          ) -> dict:
+        """
+        Getting all events in datetime range 'start_datetime'-'end_datetime'
+        with models_uuid's
+
+        Args:
+            start_datetime:
+            end_datetime:
+        """
+        events_data: dict = {}
+        self.set_active_models_uuid(self.get_all_models_uuid_list())
+        records_dict = self.get_all_models_raw_predictions(start_datetime=start_datetime,
+                                                           end_datetime=end_datetime)
+        if records_dict is None:
+            return events_data
+
+        records_dict = self.prepare_dict_df(records_dict)
+        sorted_cards = self.get_sorted_cards(list(records_dict.keys()))
+        for model_uuid, events_df in records_dict.items():
+            for type_dir, cards_ in sorted_cards.items():
+                models_uuids = [card.model_uuid for card in cards_]
+                if model_uuid in models_uuids:
+                    events_data = self.some_dict_update(type_dir, (model_uuid, events_df), events_data)
+        return events_data
+
+    def get_sorted_cards(self, models_uuids) -> Dict[str, List]:
+        """
+        Get sorted models cards dictionary
+        Args:
+            models_uuids (list):        list of models uuids for sort
+
+        Returns:
+            sorted_cards_dict (dict):   sorted cards
+        """
+        cards_type_dict: dict = {}
+        for model_uuid in models_uuids:
+            model_card = self.get_model_card(model_uuid=model_uuid)
+            if model_card.model_activator_value == 'plus' and model_card.model_type == 'classification':
+                cards_type_dict = self.some_dict_update('plus', model_card, cards_type_dict)
+            elif model_card.model_activator_value == 'minus' and model_card.model_type == 'classification':
+                cards_type_dict = self.some_dict_update('minus', model_card, cards_type_dict)
+            elif model_card.model_type == 'regression':
+                cards_type_dict = self.some_dict_update('regression', model_card, cards_type_dict)
+            else:
+                cards_type_dict = self.some_dict_update('unknown', model_card, cards_type_dict)
+        return cards_type_dict
+
+    @staticmethod
+    def some_dict_update(k: any, list_value: any, some_dict: dict):
+        v = some_dict.get(k, None)
+        if v is None:
+            v = []
+        v.append(list_value)
+        some_dict.update({k: v})
+        return some_dict
+
+    def get_model_card(self, model_uuid: str):
+        model_card = self.raw_ph_obj.get_card(model_uuid=model_uuid)
+        return model_card
+
+    def get_models_predictions(self,
+                               start_datetime: datetime.datetime or str,
+                               end_datetime: datetime.datetime or str,
+                               models_uuid_list: list = (),
+                               ):
+        self.set_active_models_uuid(models_uuid_list)
+        models_pred = self.get_all_models_raw_predictions(start_datetime, end_datetime)
+        self.reset_models_uuid_filter()
+        return models_pred
