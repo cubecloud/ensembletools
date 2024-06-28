@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='ensembletools',
-    version='0.3',
+    version='0.34',
     packages=find_packages(include=['ensembletools', 'ensembletools.*']),
     url='https://github.com/cubecloud/ensembletools.git',
     license='Apache-2.0',

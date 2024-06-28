@@ -3,9 +3,9 @@ import logging
 from dateutil.relativedelta import relativedelta
 from dbbinance.fetcher.datautils import get_timedelta_kwargs
 from dbbinance.fetcher.datafetcher import ceil_time, floor_time
-from ensembletools.indicators.dbindicators import DbIndicator, IndicatorLoaded
-from ensembletools.modelstools.predictionstore import PredictionsTracker
-from ensembletools.modelstools.predictionstore import get_raw_ph_obj
+from ensembletools.indicators import DbIndicator, IndicatorLoaded
+from ensembletools.modelstools import PredictionTracker
+from ensembletools.modelstools import get_raw_ph_obj
 
 logger = logging.getLogger()
 
@@ -60,9 +60,10 @@ _df = ind.prediction_show
 logger.debug(f"{__name__}: Set only __main__ column to show: {use_columns}")
 logger.debug(f"{__name__}: Indicator data: \n{_df}")
 
+
 logger.debug(f"{__name__}: Setting different timeframe and discretization: ")
 _show_period = '3h'
-ind.timeframe = '10m'
+ind.timeframe = '5m'
 ind.discretization = '10m'
 _timedelta_kwargs = get_timedelta_kwargs(_show_period, current_timeframe=_timeframe)
 _end_datetime = ceil_time(datetime.datetime.utcnow(), '1m')

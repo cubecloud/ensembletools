@@ -3,7 +3,7 @@ import logging
 from dateutil.relativedelta import relativedelta
 from dbbinance.fetcher.datautils import get_timedelta_kwargs
 from dbbinance.fetcher.datafetcher import ceil_time, floor_time
-from ensembletools.modelstools.predictionstore import PredictionsTracker
+from ensembletools.modelstools.predictiontracker import PredictionTracker
 from ensembletools.modelstools.predictionstore import get_raw_ph_obj
 
 

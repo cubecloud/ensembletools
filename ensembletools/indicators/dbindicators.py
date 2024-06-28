@@ -1,50 +1,19 @@
 import time
 import logging
 import datetime
-import functools
-import traceback
+
 import pandas as pd
 
 from dbbinance.fetcher.datautils import Constants
 from dataclasses import dataclass
-from ensembletools.modelstools.modelcard_v2 import ModelCard
-from ensembletools.modelstools.predictionstore import PredictionsTracker
+from ensembletools.modelstools import ModelCard
+from ensembletools.modelstools import PredictionTracker
 from dbbinance.fetcher.datautils import check_convert_to_datetime, get_timedelta_kwargs
 from dateutil.relativedelta import relativedelta
 
-__version__ = 0.018
+__version__ = 0.019
 
 logger = logging.getLogger()
-
-
-def retry(retry_num, delay):
-    """
-    retry help decorator.
-    :param retry_num: the retry num; retry sleep sec
-    :return: decorator
-    """
-
-    def decorator(func):
-        """decorator"""
-
-        # preserve information about the original function, or the func name will be "wrapper" not "func"
-        @functools.wraps(func)
-        def wrapper(*args, **kwargs):
-            """wrapper"""
-            for attempt in range(retry_num):
-                try:
-                    return func(*args, **kwargs)  # should return the raw function's return value
-                except Exception as err:  # pylint: disable=broad-except
-                    logger.error(err)
-                    logger.error(traceback.format_exc())
-                    time.sleep(delay)
-                logger.error("Trying attempt %s of %s.", attempt + 1, retry_num)
-            logger.error("func %s retry failed", func)
-            raise Exception('Exceed max retry num: {} failed'.format(retry_num))
-
-        return wrapper
-
-    return decorator
 
 
 @dataclass
@@ -57,7 +26,7 @@ class ModelAlgoParams:
 
 class DbIndicator:
 
-    def __init__(self, model_uuid: str, prediction_tracker_obj: PredictionsTracker = None):
+    def __init__(self, model_uuid: str, prediction_tracker_obj: PredictionTracker = None):
         self.model_uuid: str = model_uuid
         self.indicator_id: int = 0
         self.pt_obj = prediction_tracker_obj
@@ -183,7 +152,7 @@ class DbIndicator:
 
 
 class IndicatorLoaded(DbIndicator):
-    def __init__(self, model_uuid: str, prediction_tracker_obj: PredictionsTracker = None):
+    def __init__(self, model_uuid: str, prediction_tracker_obj: PredictionTracker = None):
         super().__init__(model_uuid, prediction_tracker_obj)
         self.__preloaded_data: pd.DataFrame or None = None
         self.__show_columns: list = [1]
