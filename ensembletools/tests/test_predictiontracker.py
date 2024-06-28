@@ -31,7 +31,7 @@ _end_datetime = ceil_time(datetime.datetime.utcnow(), _timeframe)
 _start_datetime = _end_datetime - relativedelta(**_timedelta_kwargs)
 _start_datetime = floor_time(_start_datetime, _timeframe)
 
-pt = PredictionsTracker(symbol='BTCUSDT', market='spot', raw_ph_obj=raw_db_obj)
+pt = PredictionTracker(symbol='BTCUSDT', market='spot', raw_ph_obj=raw_db_obj)
 
 models_uuid = pt.get_all_models_uuid_list()
 pt.set_active_models_uuid(models_uuid)
