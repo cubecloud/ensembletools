@@ -213,22 +213,23 @@ class IndicatorLoaded(DbIndicator):
                           _start_datetime: datetime.datetime or str,
                           _end_datetime: datetime.datetime or str
                           ):
-        _end_datetime = check_convert_to_datetime(_end_datetime, utc_aware=False)
-        _start_datetime = check_convert_to_datetime(_start_datetime, utc_aware=False)
+        _start = check_convert_to_datetime(_start_datetime, utc_aware=False)
+        _end = check_convert_to_datetime(_end_datetime, utc_aware=False)
+
         if self.__index_type == 'target_time':
             _timedelta_kwargs = get_timedelta_kwargs(self.model_card.target_steps,
                                                      current_timeframe=self.model_card.interval)
-            _start_datetime = _start_datetime - relativedelta(**_timedelta_kwargs)
-            _end_datetime = _end_datetime - relativedelta(**_timedelta_kwargs)
+            _start = _start - relativedelta(**_timedelta_kwargs)
+            _end = _end - relativedelta(**_timedelta_kwargs)
 
         _df = self.pt_obj.load_model_predicted_data(model_uuid=self.model_uuid,
-                                                    start_datetime=_start_datetime,
-                                                    end_datetime=_end_datetime,
+                                                    start_datetime=_start,
+                                                    end_datetime=_end,
                                                     timeframe=self.timeframe,
                                                     discretization=self.discretization,
                                                     cached=True)
-        logger.debug(
-            f'{self.__class__.__name__}: Preload: {self.model_uuid}  {_start_datetime} - {_end_datetime}')
+        logger.debug(f'{self.__class__.__name__}: Input: {self.model_uuid}  {_start_datetime} - {_end_datetime}')
+        logger.debug(f'{self.__class__.__name__}: Preload: {self.model_uuid}  {_start} - {_end}')
 
         if _df is not None and _df.shape[0] > 0:
             self.__preloaded_data = _df.copy(deep=True)
