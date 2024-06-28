@@ -6,7 +6,6 @@ from dbbinance.fetcher.datafetcher import ceil_time, floor_time
 from ensembletools.modelstools.predictiontracker import PredictionTracker
 from ensembletools.modelstools.predictionstore import get_raw_ph_obj
 
-
 logger = logging.getLogger()
 
 logger.setLevel(logging.DEBUG)
@@ -36,18 +35,55 @@ pt = PredictionTracker(symbol='BTCUSDT', market='spot', raw_ph_obj=raw_db_obj)
 models_uuid = pt.get_all_models_uuid_list()
 pt.set_active_models_uuid(models_uuid)
 
-logger.debug(f"Models UUID's list:\n{models_uuid}")
+logger.debug(f"{__name__}: Models UUID's list:\n{models_uuid}")
 
-logger.debug(f"Load model data for model_uuid: {models_uuid[0]}, with 'start_datetime-end_datetime': {_start_datetime} - {_end_datetime} and 'timeframe': {_timeframe}")
+logger.debug(
+    f"{__name__}: Load model data for model_uuid: {models_uuid[0]}, with 'start_datetime-end_datetime': {_start_datetime} - {_end_datetime} and 'timeframe': {_timeframe}")
 
 _df = pt.load_model_predicted_data(model_uuid=models_uuid[0],
                                    start_datetime=_start_datetime,
                                    end_datetime=_end_datetime,
                                    utc_aware=False,
-                                   timeframe=_timeframe)
+                                   timeframe=_timeframe,
+                                   cached=True)
 
 if _df is not None:
-    logger.debug(f"df:\n{_df.to_string()}")
+    logger.debug(f"{__name__}: df:\n{_df.to_string()}")
 else:
-    logger.debug(f"df: None")
+    logger.debug(f"{__name__}: df: None")
 
+_timeframe = '1h'
+_show_period = '12h'
+_timedelta_kwargs = get_timedelta_kwargs(_show_period, current_timeframe=_timeframe)
+_end_datetime = ceil_time(datetime.datetime.utcnow(), _timeframe)
+_start_datetime = _end_datetime - relativedelta(**_timedelta_kwargs)
+_start_datetime = floor_time(_start_datetime, _timeframe)
+
+logger.debug(
+    f"{__name__}: Load model data for model_uuid: {models_uuid[0]}, with 'start_datetime-end_datetime': {_start_datetime} - {_end_datetime} and 'timeframe': {_timeframe}")
+_df = pt.load_model_predicted_data(model_uuid=models_uuid[0],
+                                   start_datetime=_start_datetime,
+                                   end_datetime=_end_datetime,
+                                   utc_aware=False,
+                                   timeframe=_timeframe,
+                                   cached=True)
+
+if _df is not None:
+    logger.debug(f"{__name__}: df:\n{_df.to_string()}")
+else:
+    logger.debug(f"{__name__}: df: None")
+
+logger.debug(
+    f"{__name__}: Testing cache: {models_uuid[0]}, with 'start_datetime-end_datetime': {_start_datetime} - {_end_datetime} and 'timeframe': {_timeframe}")
+
+_df = pt.load_model_predicted_data(model_uuid=models_uuid[0],
+                                   start_datetime=_start_datetime,
+                                   end_datetime=_end_datetime,
+                                   utc_aware=False,
+                                   timeframe=_timeframe,
+                                   cached=True)
+
+if _df is not None:
+    logger.debug(f"{__name__}: df:\n{_df.to_string()}")
+else:
+    logger.debug(f"{__name__}: df: None")

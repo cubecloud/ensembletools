@@ -8,7 +8,6 @@ import pandas as pd
 from collections import OrderedDict
 from typing import List, Dict, Union, Optional
 
-
 from dbbinance.fetcher import CacheManager
 from dbbinance.fetcher import check_convert_to_datetime, convert_timeframe_to_freq, get_timedelta_kwargs
 from dbbinance.fetcher import Constants
@@ -187,10 +186,17 @@ class PredictionTracker:
         return channels_data
 
     @staticmethod
-    def one_min_records_to_df(records_lst,
-                              start_datetime,
-                              end_datetime,
-                              ) -> pd.DataFrame:
+    def minute_records_to_df(records_lst, start_datetime, end_datetime, ) -> pd.DataFrame:
+        """
+        Converting one-minute records to pd.DataFrame
+        Args:
+            records_lst:
+            start_datetime:
+            end_datetime:
+
+        Returns:
+            records_df (pd.DataFrame)
+        """
         index = pd.date_range(start=start_datetime, end=end_datetime, freq='1min')
         records_df = pd.DataFrame(records_lst).drop(columns='model_uuid')
         records_df['power'] = np.ones((records_df.shape[0],))
@@ -205,19 +211,12 @@ class PredictionTracker:
         return records_df
 
     @staticmethod
-    def powered_df(records_lst,
+    def powered_df(records_df,
                    start_datetime,
                    end_datetime,
                    timeframe: Union[str, None] = None,
                    discretization: Union[str, None] = None) -> pd.DataFrame:
-        index = pd.date_range(start=start_datetime, end=end_datetime, freq='1min')
-        records_df = pd.DataFrame(records_lst).drop(columns='model_uuid')
-        records_df['power'] = np.ones((records_df.shape[0],))
-        target_time_diff = (pd.to_datetime(records_df['target_time'].iloc[0]) - (
-            pd.to_datetime(records_df['predict_time'].iloc[0])))
-        records_df = records_df.sort_values(by='predict_time', ascending=True).set_index('predict_time')
-        pred_data_df = pd.DataFrame(records_df['predict_data'].to_list(), index=records_df.index).astype(float)
-        records_df = pd.concat([records_df['power'], pred_data_df], axis=1)
+        index = records_df.index
 
         if timeframe is not None and timeframe != '1m':
             records_df = PredictionTracker.custom_reindex(records_df, index, fillna=np.nan)
@@ -235,8 +234,15 @@ class PredictionTracker:
                 records_df = records_df.iloc[::Constants.binsizes.get(timeframe)]
         else:
             records_df = PredictionTracker.custom_reindex(records_df, index)
-        records_df['power'] = records_df['power'].astype(float)
-        records_df['target_time'] = records_df.index + target_time_diff
+        # records_df['power'] = records_df['power'].astype(float)
+        # records_df['target_time'] = records_df.index + target_time_diff
+        logger.debug(
+            f"{PredictionTracker.__class__.__name__}: before records_df.index[0]-records_df.index[-1] {records_df.index[0]} - {records_df.index[-1]}")
+        records_df = records_df[start_datetime:end_datetime]
+        logger.debug(
+            f"{PredictionTracker.__class__.__name__}: powered_df start_datetime-end_datetime {start_datetime} - {end_datetime}")
+        logger.debug(
+            f"{PredictionTracker.__class__.__name__}: after records_df.index[0]-records_df.index[-1] {records_df.index[0]} - {records_df.index[-1]}")
         return records_df
 
     def get_predicted_data(self, model_uuid, start_datetime, end_datetime):
@@ -260,33 +266,36 @@ class PredictionTracker:
 
         def get_powered_df():
             pwrd_df = None
-            predicted_data = None
+            records_df = None
             if cached:
                 cache_key = self.CM.get_cache_key(symbol=self.symbol, market=self.market, model_uuid=model_uuid,
                                                   start_datetime=extended_start_datetime, end_datetime=end_datetime,
-                                                  timeframe=timeframe, discretization=discretization, data_type='RAW')
+                                                  data_type='RAW')
                 if cache_key in self.CM.cache.keys():
-                    predicted_data = self.CM.cache[cache_key]
+                    records_df = self.CM.cache[cache_key]
                     logger.debug(f"{self.__class__.__name__}: Return RAW predicted cached data {model_uuid}")
                 else:
                     for key in self.CM.cache.keys():
-                        if len(key) == 8:
-                            if (key[6][1] == self.symbol) and (extended_start_datetime >= key[5][1]) and (
-                                    end_datetime <= key[2][1]) and (model_uuid == key[4][1]) and (
-                                    timeframe == key[7][1]) and ('RAW' == key[0][1]) and (
-                                    self.market == key[3][1]) and (discretization == key[1][1]):
-                                predicted_data = self.CM.cache[key]
+                        if len(key) == 6:
+                            if (key[5][1] == self.symbol) and (extended_start_datetime >= key[4][1]) and (
+                                    end_datetime <= key[1][1]) and (model_uuid == key[3][1]) and (
+                                    'RAW' == key[0][1]) and (self.market == key[2][1]):
+                                records_df = self.CM.cache[key]
                                 msg = f"{self.__class__.__name__}: Return RAW predicted cached data {model_uuid}"
                                 logger.debug(msg)
                                 break
-                    if predicted_data is None:
-                        predicted_data = self.get_predicted_data(model_uuid, extended_start_datetime, end_datetime)
-                        self.CM.update_cache(key=cache_key, value=copy.deepcopy(predicted_data))
+                    if records_df is None:
+                        records_df = PredictionTracker.minute_records_to_df(
+                            self.get_predicted_data(model_uuid, extended_start_datetime, end_datetime),
+                            extended_start_datetime, end_datetime)
+                        self.CM.update_cache(key=cache_key, value=copy.deepcopy(records_df))
             else:
-                predicted_data = self.get_predicted_data(model_uuid, extended_start_datetime, end_datetime)
+                records_df = PredictionTracker.minute_records_to_df(
+                    self.get_predicted_data(model_uuid, extended_start_datetime, end_datetime),
+                    extended_start_datetime, end_datetime)
 
-            if predicted_data:
-                pwrd_df = self.powered_df(records_lst=predicted_data,
+            if records_df is not None:
+                pwrd_df = self.powered_df(records_df=records_df,
                                           start_datetime=extended_start_datetime,
                                           end_datetime=end_datetime,
                                           timeframe=timeframe,
@@ -309,10 +318,10 @@ class PredictionTracker:
         if cached:
             cache_key = self.CM.get_cache_key(symbol=self.symbol, market=self.market, model_uuid=model_uuid,
                                               start_datetime=extended_start_datetime, end_datetime=end_datetime,
-                                              timeframe=timeframe)
+                                              timeframe=timeframe, discretization=discretization)
             if cache_key in self.CM.cache.keys():
                 powered_df = self.CM.cache[cache_key]
-                logger.debug(f"{self.__class__.__name__}: Return cached data. {model_uuid}")
+                logger.debug(f"{self.__class__.__name__}: Return cached data {model_uuid}")
             else:
                 powered_df = get_powered_df()
                 self.CM.update_cache(cache_key, powered_df)
@@ -393,8 +402,3 @@ class PredictionTracker:
         models_pred = self.get_all_models_raw_predictions(start_datetime, end_datetime)
         self.reset_models_uuid_filter()
         return models_pred
-
-
-
-
-

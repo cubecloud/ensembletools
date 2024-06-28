@@ -8,7 +8,7 @@ from psycopg2.extras import execute_values
 from typing import List, Union
 
 from ensembletools.modelstools import ModelCard
-from ensembletools.modelstools import PredictionRecord
+from ensembletools.modelstools.predictionrecord import PredictionRecord
 from dbbinance.fetcher import SQLMeta, handle_errors
 from dbbinance.config import ConfigPostgreSQL
 
