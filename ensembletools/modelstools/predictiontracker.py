@@ -59,7 +59,7 @@ class PredictionTracker:
     CM = cache_manager_obj
     count = 0
 
-    def __init__(self, symbol: str, market: str, raw_ph_obj: RawPredictionHistory = None):
+    def __init__(self, symbol: str, market: str, raw_ph_obj: RawPredictionHistory = None, ):
         """
         Initializes an instance of the class.
 
@@ -199,7 +199,8 @@ class PredictionTracker:
         index = pd.date_range(start=start_datetime, end=end_datetime, freq='1min')
         records_df = pd.DataFrame(records_lst).drop(columns='model_uuid')
         records_df['power'] = np.ones((records_df.shape[0],))
-        target_time_diff = (pd.to_datetime(records_df['target_time'].iloc[0]) - (pd.to_datetime(records_df['predict_time'].iloc[0])))
+        target_time_diff = (pd.to_datetime(records_df['target_time'].iloc[0]) - (
+            pd.to_datetime(records_df['predict_time'].iloc[0])))
         records_df = records_df.sort_values(by='predict_time', ascending=True).set_index('predict_time')
         pred_data_df = pd.DataFrame(records_df['predict_data'].to_list(), index=records_df.index).astype(float)
         records_df = pd.concat([records_df['power'], pred_data_df], axis=1)
@@ -210,12 +211,13 @@ class PredictionTracker:
         return records_df
 
     def powered_df(self, records_df, start_datetime, end_datetime, timeframe: Union[str, None] = None,
-                   discretization: Union[str, None] = None) -> pd.DataFrame:
+                   discretization: Union[str, None] = None, deep_debug: bool = False) -> pd.DataFrame:
         """
         convert one minutes df to timeframed df with agg
         ! Keep it in object for ml-threads
 
         Args:
+            deep_debug:
             records_df:
             start_datetime:
             end_datetime:
@@ -236,8 +238,9 @@ class PredictionTracker:
                 records_df = records_df.resample(frequency, label='right', closed='right', origin='end').agg(
                     agg_dict)
             else:
-                target_time_diff = (pd.to_datetime(records_df['target_time'].iloc[0]) - (pd.to_datetime(records_df.index[0])))
-                """ rolling Agg is not working with time columns """
+                target_time_diff = (
+                        pd.to_datetime(records_df['target_time'].iloc[0]) - (pd.to_datetime(records_df.index[0])))
+                """ rolling Agg is not working with time columns  """
                 records_df = records_df.drop(columns=['target_time'])
                 """ --------------------------------------------- """
                 cols = list(records_df.columns)
@@ -251,13 +254,15 @@ class PredictionTracker:
             records_df = PredictionTracker.custom_reindex(records_df, index)
         # records_df['power'] = records_df['power'].astype(float)
         # records_df['target_time'] = records_df.index + target_time_diff
-        logger.debug(
-            f"{self.__class__.__name__} #{self.idnum}: before records_df.index[0] - records_df.index[-1] {records_df.index[0]} - {records_df.index[-1]}")
+        if deep_debug:
+            logger.debug(
+                f"{self.__class__.__name__} #{self.idnum}: before records_df.index[0] - records_df.index[-1] {records_df.index[0]} - {records_df.index[-1]}")
         records_df = records_df[start_datetime:end_datetime]
-        logger.debug(
-            f"{self.__class__.__name__} #{self.idnum}: powered_df start_datetime - end_datetime {start_datetime} - {end_datetime}")
-        logger.debug(
-            f"{self.__class__.__name__} #{self.idnum}: after records_df.index[0] - records_df.index[-1] {records_df.index[0]} - {records_df.index[-1]}")
+        if deep_debug:
+            logger.debug(
+                f"{self.__class__.__name__} #{self.idnum}: powered_df start_datetime - end_datetime {start_datetime} - {end_datetime}")
+            logger.debug(
+                f"{self.__class__.__name__} #{self.idnum}: after records_df.index[0] - records_df.index[-1] {records_df.index[0]} - {records_df.index[-1]}")
         return records_df
 
     def get_predicted_data(self, model_uuid, start_datetime, end_datetime):
