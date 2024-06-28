@@ -211,7 +211,8 @@ class IndicatorLoaded(DbIndicator):
 
     def preload_indicator(self,
                           _start_datetime: datetime.datetime or str,
-                          _end_datetime: datetime.datetime or str
+                          _end_datetime: datetime.datetime or str,
+                          deep_debug=False,
                           ):
         _start = check_convert_to_datetime(_start_datetime, utc_aware=False)
         _end = check_convert_to_datetime(_end_datetime, utc_aware=False)
@@ -228,15 +229,17 @@ class IndicatorLoaded(DbIndicator):
                                                     timeframe=self.timeframe,
                                                     discretization=self.discretization,
                                                     cached=True)
-        logger.debug(f'{self.__class__.__name__}: Input: {self.model_uuid}  {_start_datetime} - {_end_datetime}')
-        logger.debug(f'{self.__class__.__name__}: Preload: {self.model_uuid}  {_start} - {_end}')
+        if deep_debug:
+            logger.debug(f'{self.__class__.__name__}: Input: {self.model_uuid}  {_start_datetime} - {_end_datetime}')
+            logger.debug(f'{self.__class__.__name__}: Preload: {self.model_uuid}  {_start} - {_end}')
 
         if _df is not None and _df.shape[0] > 0:
             self.__preloaded_data = _df.copy(deep=True)
             self.__preloaded_data['power'] = self.__preloaded_data['power'] / Constants.binsizes[self.discretization]
-            msg = (f'{self.__class__.__name__}: Loaded: {self.model_uuid}  '
-                   f'{self.__preloaded_data.index[0]} - {self.__preloaded_data.index[-1]}')
-            logger.debug(msg)
+            if deep_debug:
+                msg = (f'{self.__class__.__name__}: Loaded: {self.model_uuid}  '
+                       f'{self.__preloaded_data.index[0]} - {self.__preloaded_data.index[-1]}')
+                logger.debug(msg)
         else:
             self.__preloaded_data = None
         pass
