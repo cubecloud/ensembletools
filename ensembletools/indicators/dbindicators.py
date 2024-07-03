@@ -157,7 +157,15 @@ class IndicatorLoaded(DbIndicator):
         self.__preloaded_data: pd.DataFrame or None = None
         self.__show_columns: list = [1]
         self.__index_type: str = 'prediction_time'
+        self.__last_preloaded_datetime = None
 
+    @property
+    def last_preloaded_datetime(self):
+        return self.__last_preloaded_datetime
+
+    @last_preloaded_datetime.setter
+    def last_preloaded_datetime(self, value):
+        self.__last_preloaded_datetime = value
     @property
     def prediction_show(self) -> pd.DataFrame:
         if self.__index_type == 'target_time':
@@ -214,6 +222,8 @@ class IndicatorLoaded(DbIndicator):
                           _end_datetime: datetime.datetime or str,
                           deep_debug=False,
                           ):
+        self.last_preloaded_datetime = (_start_datetime, _end_datetime)
+
         _start = check_convert_to_datetime(_start_datetime, utc_aware=False)
         _end = check_convert_to_datetime(_end_datetime, utc_aware=False)
 
