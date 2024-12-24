@@ -311,10 +311,16 @@ class PredictionTracker:
                         if records_lst:
                             records_df = self.minute_records_to_df(records_lst, extended_start_datetime, end_datetime)
                             self.CM.update_cache(key=cache_key, value=copy.deepcopy(records_df))
+                        else:
+                            logger.warning(
+                                f"{self.__class__.__name__} #{self.idnum}: Model {model_uuid}, records list empty")
             else:
                 records_lst = self.get_predicted_data(model_uuid, extended_start_datetime, end_datetime)
                 if records_lst:
                     records_df = self.minute_records_to_df(records_lst, extended_start_datetime, end_datetime)
+                else:
+                    logger.warning(
+                        f"{self.__class__.__name__} #{self.idnum}: Model {model_uuid}, records list empty")
 
             if records_df is not None:
                 pwrd_df = self.powered_df(records_df=records_df,
