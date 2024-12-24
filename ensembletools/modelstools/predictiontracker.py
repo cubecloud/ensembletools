@@ -265,7 +265,7 @@ class PredictionTracker:
                 f"{self.__class__.__name__} #{self.idnum}: after records_df.index[0] - records_df.index[-1] {records_df.index[0]} - {records_df.index[-1]}")
         return records_df
 
-    def get_predicted_data(self, model_uuid, start_datetime, end_datetime):
+    def get_predicted_data(self, model_uuid, start_datetime, end_datetime) -> Union[List, None]:
         predicted_data = self.raw_ph_obj.get_predictions_by_predict_time(
             predicts_table_name=self.raw_pred_table_name,
             symbol=self.symbol,
@@ -307,14 +307,14 @@ class PredictionTracker:
                                 records_df = records_df.loc[extended_start_datetime:end_datetime].copy(deep=True)
                                 break
                     if records_df is None:
-                        records_df = self.minute_records_to_df(
-                            self.get_predicted_data(model_uuid, extended_start_datetime, end_datetime),
-                            extended_start_datetime, end_datetime)
-                        self.CM.update_cache(key=cache_key, value=copy.deepcopy(records_df))
+                        records_lst = self.get_predicted_data(model_uuid, extended_start_datetime, end_datetime)
+                        if records_lst:
+                            records_df = self.minute_records_to_df(records_lst, extended_start_datetime, end_datetime)
+                            self.CM.update_cache(key=cache_key, value=copy.deepcopy(records_df))
             else:
-                records_df = self.minute_records_to_df(
-                    self.get_predicted_data(model_uuid, extended_start_datetime, end_datetime),
-                    extended_start_datetime, end_datetime)
+                records_lst = self.get_predicted_data(model_uuid, extended_start_datetime, end_datetime)
+                if records_lst:
+                    records_df = self.minute_records_to_df(records_lst, extended_start_datetime, end_datetime)
 
             if records_df is not None:
                 pwrd_df = self.powered_df(records_df=records_df,
