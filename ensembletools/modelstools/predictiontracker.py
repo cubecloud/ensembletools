@@ -14,7 +14,7 @@ from dbbinance.fetcher import Constants
 from ensembletools.modelstools import RawPredictionHistory
 from ensembletools.modelstools import get_raw_ph_obj
 
-__version__ = 0.060
+__version__ = 0.062
 
 logger = logging.getLogger()
 
@@ -52,7 +52,7 @@ def get_rolling_agg_dict(use_cols):
     return actual_agg_dict
 
 
-cache_manager_obj = CacheManager()
+cache_manager_obj = CacheManager(unique_name='prediction_tracker')
 
 
 class PredictionTracker:
